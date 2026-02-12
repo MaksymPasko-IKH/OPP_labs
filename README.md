@@ -1,2 +1,2 @@
-# OPP_labs
+# OOP_labs
 # hello world
