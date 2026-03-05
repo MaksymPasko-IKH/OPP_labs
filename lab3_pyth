@@ -1,0 +1,257 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+# ==========================================
+# 1. ІМПОРТ ТА ПЕРВИННИЙ АНАЛІЗ
+# ==========================================
+
+class DataLoader:
+
+    def __init__(self, file_path):
+        self.file_path = file_path
+
+    def load(self):
+        df = pd.read_csv(self.file_path)
+        df.columns = df.columns.str.strip()
+        print("✔ Data loaded successfully\n")
+        return df
+
+    def primary_analysis(self, df):
+        print("Перші 5 рядків:")
+        print(df.head())
+
+        print("\nОстанні 5 рядків:")
+        print(df.tail())
+
+        print("\nРозмірність датасету (рядки, стовпці):")
+        print(df.shape)
+
+        print("\nОбсяг пам’яті:")
+        print(df.memory_usage(deep=True).sum(), "bytes")
+
+
+# ==========================================
+# 2. АНАЛІЗ СТРУКТУРИ
+# ==========================================
+
+class DataInspector:
+
+    def analyze(self, df):
+        print("\nТипи даних:")
+        print(df.dtypes)
+
+        print("\nПропущені значення:")
+        print(df.isnull().sum())
+
+        total_missing = df.isnull().sum().sum()
+
+        if total_missing == 0:
+            print("\n✔ Дані якісні, пропусків немає.")
+        else:
+            print(f"\n⚠ Є {total_missing} пропущених значень.")
+
+
+# ==========================================
+# 3. ФІЛЬТРАЦІЯ
+# ==========================================
+
+class JobFilter:
+
+    def filter_industry(self, df, industry):
+        return df[df["Industry"] == industry]
+
+    def filter_senior(self, df):
+        return df[df["Experience Level"] == "Senior"]
+
+    def filter_fulltime_city(self, df, city):
+        return df[(df["Job Type"] == "Full-Time") &
+                  (df["Location"] == city)]
+
+
+# ==========================================
+# 4. АНАЛІЗ ЗАРПЛАТИ
+# ==========================================
+
+class SalaryAnalyzer:
+
+    def prepare_salary(self, df):
+
+        df = df.copy()
+
+        # очищення тексту
+        df["Salary Range"] = df["Salary Range"].str.replace("$", "", regex=False)
+        df["Salary Range"] = df["Salary Range"].str.replace(",", "", regex=False)
+        df["Salary Range"] = df["Salary Range"].str.replace("–", "-", regex=False)
+
+        # витягування чисел
+        numbers = df["Salary Range"].str.findall(r"\d+")
+
+        df["Min Salary"] = numbers.str[0]
+        df["Max Salary"] = numbers.str[1]
+
+        df["Min Salary"] = pd.to_numeric(df["Min Salary"], errors="coerce")
+        df["Max Salary"] = pd.to_numeric(df["Max Salary"], errors="coerce")
+
+        # множення якщо є k
+        has_k = df["Salary Range"].str.contains("k", case=False, na=False)
+
+        df.loc[has_k, "Min Salary"] *= 1000
+        df.loc[has_k, "Max Salary"] *= 1000
+
+        print("\n✔ Зарплата оброблена правильно")
+
+        return df
+
+    def sort_by_salary(self, df):
+        return df.sort_values(by="Max Salary", ascending=False)
+
+    def top5(self, df):
+        return self.sort_by_salary(df).head(5)
+
+    def highest_paid_positions(self, df):
+        return self.sort_by_salary(df)[["Job Title", "Max Salary"]].head(5)
+
+
+# ==========================================
+# 5. ГРУПУВАННЯ
+# ==========================================
+
+class JobGrouper:
+
+    def group_by_industry(self, df):
+
+        grouped = df.groupby("Industry").agg(
+            Кількість_вакансій=("Job Title", "count"),
+            Середня_мін_зарплата=("Min Salary", "mean")
+        )
+
+        return grouped.sort_values(
+            by="Середня_мін_зарплата",
+            ascending=False
+        )
+
+
+# ==========================================
+# 6. SALARY CATEGORY (apply)
+# ==========================================
+
+class SalaryCategoryCreator:
+
+    def categorize(self, max_salary):
+
+        if pd.isna(max_salary):
+            return "Unknown"
+
+        if max_salary <= 40000:
+            return "Low"
+        elif max_salary <= 70000:
+            return "Medium"
+        else:
+            return "High"
+
+    def add_category(self, df):
+
+        df = df.copy()
+        df["Salary Category"] = df["Max Salary"].apply(self.categorize)
+
+        return df
+
+
+# ==========================================
+# 7. ЧАСОВИЙ АНАЛІЗ
+# ==========================================
+
+class TimeAnalyzer:
+
+    def prepare_time(self, df):
+
+        df = df.copy()
+        df["Date Posted"] = pd.to_datetime(df["Date Posted"], errors="coerce")
+        df["Year"] = df["Date Posted"].dt.year
+
+        return df
+
+    def jobs_per_year(self, df):
+
+        return df.groupby("Year").agg(
+            Кількість_вакансій=("Job Title", "count")
+        )
+
+    def plot_jobs(self, df):
+
+        yearly = self.jobs_per_year(df)
+
+        if yearly.empty:
+            print("Немає даних для побудови графіка.")
+            return
+
+        yearly.plot(kind="bar", legend=False)
+        plt.title("Кількість вакансій за роками")
+        plt.xlabel("Рік")
+        plt.ylabel("Кількість вакансій")
+        plt.xticks(rotation=0)
+        plt.tight_layout()
+
+# ГОЛОВНА ПРОГРАМА
+
+if __name__ == "__main__":
+
+    file_path = "Job opportunities.csv"
+
+    # 1
+    loader = DataLoader(file_path)
+    df = loader.load()
+    loader.primary_analysis(df)
+
+    # 2
+    inspector = DataInspector()
+    inspector.analyze(df)
+
+    # 3
+    filter_obj = JobFilter()
+
+    print("\nCloud Computing:")
+    print(filter_obj.filter_industry(df, "Cloud Computing"))
+
+    print("\nSenior вакансії:")
+    print(filter_obj.filter_senior(df))
+
+    print("\nFull-Time у New York:")
+    print(filter_obj.filter_fulltime_city(df, "New York"))
+
+    # 4
+    salary = SalaryAnalyzer()
+    df_salary = salary.prepare_salary(df)
+
+    print("\nТОП 5 найвищих зарплат:")
+    print(salary.top5(df_salary))
+
+    print("\nНайбільш високооплачувані посади:")
+    print(salary.highest_paid_positions(df_salary))
+
+    # 5
+    grouper = JobGrouper()
+    grouped = grouper.group_by_industry(df_salary)
+
+    print("\nГрупування по галузях:")
+    print(grouped)
+
+    print("\nГалузь з найвищою середньою зарплатою:")
+    print(grouped.head(1))
+
+    # 6
+    category = SalaryCategoryCreator()
+    df_category = category.add_category(df_salary)
+
+    print("\nПеревірка Salary Category:")
+    print(df_category[["Max Salary", "Salary Category"]].head())
+
+    # 7
+    time = TimeAnalyzer()
+    df_time = time.prepare_time(df_salary)
+
+    print("\nКількість вакансій за роками:")
+    print(time.jobs_per_year(df_time))
+
+    time.plot_jobs(df_time)
