@@ -1,0 +1,174 @@
+import asyncio
+import random
+import time
+import networkx as nx
+import matplotlib.pyplot as plt
+import numpy as np
+
+# КЛАС ВУЗЛА (Ring)
+
+class Node:
+    def __init__(self, name):
+        self.name = name
+        self.next_node = None
+
+    def set_next(self, node):
+        self.next_node = node
+
+    async def send_packet(self, packet, protocol):
+        return await protocol.handle_packet(packet, self)
+
+# КЛАС ПАКЕТУ
+
+class Packet:
+    def __init__(self, sender, receiver, size):
+        self.sender = sender
+        self.receiver = receiver
+        self.size = size
+        self.created_time = time.time()
+
+# UDP ПРОТОКОЛ
+
+class UDPProtocol:
+    def __init__(self, loss_chance=0.15):
+        self.loss_chance = loss_chance
+
+    async def handle_packet(self, packet, current_node):
+        node = current_node
+
+        while True:
+            await asyncio.sleep(random.uniform(0.05, 0.15))
+
+            if random.random() < self.loss_chance:
+                print(f"UDP Пакет втрачено на вузлі {node.name}")
+                return False
+
+            print(f"UDP → {node.name}")
+
+            if node.name == packet.receiver.name:
+                print(f"UDP Доставлено {packet.sender.name} -> {packet.receiver.name}")
+                return True
+
+            node = node.next_node
+
+# TCP ПРОТОКОЛ
+
+class TCPProtocol:
+    def __init__(self, loss_chance=0.15):
+        self.loss_chance = loss_chance
+
+    async def handle_packet(self, packet, current_node):
+        while True:
+            node = current_node
+
+            while True:
+                await asyncio.sleep(random.uniform(0.05, 0.15))
+
+                if random.random() < self.loss_chance:
+                    print(f"TCP Втрата на {node.name}, повтор...")
+                    break
+
+                print(f"TCP → {node.name}")
+
+                if node.name == packet.receiver.name:
+                    print(f"TCP Доставлено {packet.sender.name} -> {packet.receiver.name}")
+                    return True
+
+                node = node.next_node
+
+# СИМУЛЯЦІЯ
+
+class Simulation:
+    def __init__(self):
+        self.total_packets = 0
+        self.lost_packets = 0
+        self.total_time = 0
+
+    async def transmit(self, sender, receiver, protocol):
+        packet = Packet(sender, receiver, random.randint(100, 1000))
+        self.total_packets += 1
+
+        start = time.time()
+        result = await sender.send_packet(packet, protocol)
+        end = time.time()
+
+        if not result:
+            self.lost_packets += 1
+
+        self.total_time += (end - start)
+
+    def statistics(self):
+        avg_time = self.total_time / self.total_packets if self.total_packets else 0
+        throughput = self.total_packets / self.total_time if self.total_time else 0
+
+        return {
+            "total_packets": self.total_packets,
+            "lost_packets": self.lost_packets,
+            "average_time": avg_time,
+            "throughput (pkt/sec)": throughput
+        }
+
+# ГОЛОВНА ФУНКЦІЯ
+
+async def main():
+
+    # створення 6 вузлів
+    A = Node("A")
+    B = Node("B")
+    C = Node("C")
+    D = Node("D")
+    E = Node("E")
+    F = Node("F")
+
+    # правильне кільце
+    A.set_next(B)
+    B.set_next(C)
+    C.set_next(D)
+    D.set_next(E)
+    E.set_next(F)
+    F.set_next(A)
+
+    simulation_udp = Simulation()
+    simulation_tcp = Simulation()
+
+    udp = UDPProtocol()
+    tcp = TCPProtocol()
+
+    print("\n--- UDP Simulation (Ring) ---")
+    await simulation_udp.transmit(A, D, udp)
+    await simulation_udp.transmit(C, F, udp)
+
+    print("\nСтатистика UDP:")
+    print(simulation_udp.statistics())
+
+    print("\n--- TCP Simulation (Ring) ---")
+    await simulation_tcp.transmit(A, D, tcp)
+    await simulation_tcp.transmit(C, F, tcp)
+
+    print("\nСтатистика TCP:")
+    print(simulation_tcp.statistics())
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+# ВІЗУАЛІЗАЦІЯ
+
+def draw_ring():
+    G = nx.Graph()
+    nodes = ["A", "B", "C", "D", "E", "F"]
+    G.add_nodes_from(nodes)
+
+    edges = [("A","B"), ("B","C"), ("C","D"),
+             ("D","E"), ("E","F"), ("F","A")]
+    G.add_edges_from(edges)
+
+    angle = np.linspace(0, 2*np.pi, len(nodes), endpoint=False)
+    pos = {node: (np.cos(a), np.sin(a)) for node, a in zip(nodes, angle)}
+
+    nx.draw(G, pos, with_labels=True, node_size=2000)
+    plt.title("Ring Topology (6 Nodes)")
+    plt.axis("equal")
+    plt.show()
+
+draw_ring()
