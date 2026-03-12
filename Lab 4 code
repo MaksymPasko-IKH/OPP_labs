@@ -1,0 +1,264 @@
+#1
+import pandas as pd
+import sqlite3
+#2
+class DatabaseManager:
+
+    def __init__(self, db_name="jobs.db"):
+        self.conn = sqlite3.connect(db_name)
+        self.cursor = self.conn.cursor()
+
+    def close_connection(self):
+        self.conn.close()
+#3
+class DataPreparation:
+
+    def __init__(self, db_manager):
+        self.db = db_manager
+
+    def load_csv(self, file_path):
+        self.df = pd.read_csv(file_path)
+
+        print("Дані успішно завантажені")
+        print(self.df.head())
+
+        # очищаємо Salary Range
+        self.df["Salary Range"] = self.df["Salary Range"].str.replace("£", "")
+        self.df["Salary Range"] = self.df["Salary Range"].str.replace(",", "")
+
+        # розділяємо мін і макс зарплату
+        salary_split = self.df["Salary Range"].str.split("-", expand=True)
+
+        self.df["Salary Min"] = salary_split[0].astype(int)
+        self.df["Salary Max"] = salary_split[1].astype(int)
+
+        # середня зарплата
+        self.df["Salary"] = (self.df["Salary Min"] + self.df["Salary Max"]) / 2
+
+        return self.df
+
+    def save_to_db(self):
+        self.df.to_sql("jobs", self.db.conn, if_exists="replace", index=False)
+        print("Дані записані в таблицю jobs")
+#4
+class JobQueries:
+
+    def __init__(self, db_manager):
+        self.db = db_manager
+
+    def first_10_jobs(self):
+        query = "SELECT * FROM jobs LIMIT 10"
+        result = pd.read_sql(query, self.db.conn)
+        print("\nПерші 10 вакансій:")
+        print(result)
+
+    def jobs_with_sql_skill(self):
+        query = """
+        SELECT * FROM jobs
+        WHERE `Required Skills` LIKE '%SQL%'
+        """
+        result = pd.read_sql(query, self.db.conn)
+        print("\nВакансії з SQL:")
+        print(result)
+
+    def unique_locations_companies(self):
+        query = """
+        SELECT DISTINCT Location, Company
+        FROM jobs
+        """
+        result = pd.read_sql(query, self.db.conn)
+        print("\nУнікальні Location та Company:")
+        print(result)
+#5
+class AnalyticsQueries:
+
+    def __init__(self, db_manager):
+        self.db = db_manager
+
+    def average_salary_by_experience(self):
+        query = """
+        SELECT `Experience Level`,
+        AVG(`Salary`) as avg_salary
+        FROM jobs
+        GROUP BY `Experience Level`
+        """
+        result = pd.read_sql(query, self.db.conn)
+        print("\nСередня зарплата за рівнем досвіду:")
+        print(result)
+
+    def jobs_count_by_experience(self):
+        query = """
+        SELECT `Experience Level`,
+        COUNT(*) as jobs_count
+        FROM jobs
+        GROUP BY `Experience Level`
+        """
+        result = pd.read_sql(query, self.db.conn)
+        print("\nКількість вакансій за рівнем досвіду:")
+        print(result)
+
+    def min_max_salary(self):
+        query = """
+        SELECT
+        MIN(Salary) as min_salary,
+        MAX(Salary) as max_salary
+        FROM jobs
+        """
+        result = pd.read_sql(query, self.db.conn)
+        print("\nМінімальна та максимальна зарплата:")
+        print(result)
+#6
+class AggregateQueries:
+
+    def __init__(self, db_manager):
+        self.db = db_manager
+
+    def jobs_by_industry_high_salary(self):
+        query = """
+        SELECT Industry, COUNT(*) as jobs_count
+        FROM jobs
+        WHERE Salary > 50000
+        GROUP BY Industry
+        """
+        result = pd.read_sql(query, self.db.conn)
+        print("\nКількість вакансій в індустріях із зарплатою > 50000:")
+        print(result)
+
+    def avg_salary_by_industry(self):
+        query = """
+        SELECT Industry,
+        AVG(Salary) as avg_salary
+        FROM jobs
+        GROUP BY Industry
+        """
+        result = pd.read_sql(query, self.db.conn)
+        print("\nСередня зарплата по індустріях:")
+        print(result)
+#7
+class AdvancedQueries:
+
+    def __init__(self, db_manager):
+        self.db = db_manager
+
+    def jobs_by_location_experience(self):
+        query = """
+        SELECT Location,
+        `Experience Level`,
+        COUNT(*) as jobs_count
+        FROM jobs
+        GROUP BY Location, `Experience Level`
+        """
+        result = pd.read_sql(query, self.db.conn)
+        print("\nКількість вакансій за Location та Experience Level:")
+        print(result)
+
+    def jobs_by_industry_jobtype(self):
+        query = """
+        SELECT Industry,
+        `Job Type`,
+        COUNT(*) as jobs_count
+        FROM jobs
+        GROUP BY Industry, `Job Type`
+        """
+        result = pd.read_sql(query, self.db.conn)
+        print("\nКількість вакансій за Industry та Job Type:")
+        print(result)
+
+    def avg_salary_location_experience(self):
+        query = """
+        SELECT Location,
+        `Experience Level`,
+        AVG(Salary) as avg_salary
+        FROM jobs
+        GROUP BY Location, `Experience Level`
+        """
+        result = pd.read_sql(query, self.db.conn)
+        print("\nСередня зарплата за Location та Experience Level:")
+        print(result)
+#8
+class ExtraQueries:
+
+    def __init__(self, db):
+        self.db = db
+
+    # 1. 5 вакансій з найбільшою максимальною зарплатою
+    def top5_highest_salary(self):
+        query = """
+        SELECT `Job Title`, `Company`, `Salary Max`
+        FROM jobs
+        ORDER BY `Salary Max` DESC
+        LIMIT 5
+        """
+        result = pd.read_sql(query, self.db.conn)
+        print("\n5 вакансій з найвищою зарплатою:")
+        print(result)
+
+
+    # 2. Кількість вакансій по Required Skills
+    def skills_count(self):
+        df = pd.read_sql("SELECT `Required Skills` FROM jobs", self.db.conn)
+
+        skills = df["Required Skills"].str.split(",", expand=True).stack()
+        skills = skills.str.strip()
+
+        result = skills.value_counts()
+
+        print("\nКількість вакансій за навичками:")
+        print(result)
+
+
+    # 3. Компанії з найбільшою кількістю вакансій у 2023 році
+    def top_companies_2023(self):
+        query = """
+        SELECT Company, COUNT(*) as jobs_count
+        FROM jobs
+        WHERE `Date Posted` LIKE '%2023'
+        GROUP BY Company
+        ORDER BY jobs_count DESC
+        LIMIT 10
+        """
+
+        result = pd.read_sql(query, self.db.conn)
+
+        print("\nКомпанії з найбільшою кількістю вакансій у 2023:")
+        print(result)
+#9
+def main():
+
+    db = DatabaseManager()
+
+    data = DataPreparation(db)
+    data.load_csv("Job opportunities.csv")
+    data.save_to_db()
+
+    basic = JobQueries(db)
+    basic.first_10_jobs()
+    basic.jobs_with_sql_skill()
+    basic.unique_locations_companies()
+
+    analytics = AnalyticsQueries(db)
+    analytics.average_salary_by_experience()
+    analytics.jobs_count_by_experience()
+    analytics.min_max_salary()
+
+    aggregate = AggregateQueries(db)
+    aggregate.jobs_by_industry_high_salary()
+    aggregate.avg_salary_by_industry()
+
+    advanced = AdvancedQueries(db)
+    advanced.jobs_by_location_experience()
+    advanced.jobs_by_industry_jobtype()
+    advanced.avg_salary_location_experience()
+
+    extra = ExtraQueries(db)
+    extra.top5_highest_salary()
+    extra.skills_count()
+    extra.top_companies_2023()
+
+    db.close_connection()
+
+    db.close_connection()
+
+
+if __name__ == "__main__":
+    main()
