@@ -1,0 +1,111 @@
+import asyncio
+import random
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy import Column, Integer, String, select
+
+DATABASE_URL = "sqlite+aiosqlite:///network_nodes.db"
+
+Base = declarative_base()
+
+# Таблиця вузлів
+class Node(Base):
+    __tablename__ = "nodes"
+
+    id = Column(Integer, primary_key=True)
+    ip_address = Column(String)
+    status = Column(String)
+
+    def __repr__(self):
+        return f"Node(id={self.id}, ip={self.ip_address}, status={self.status})"
+
+
+# створення двигуна БД
+engine = create_async_engine(DATABASE_URL, echo=True)
+
+AsyncSessionLocal = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
+
+
+# створення таблиці
+async def create_table():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
+# додавання вузлів
+async def add_nodes():
+    async with AsyncSessionLocal() as session:
+        nodes = []
+
+        for i in range(10, 25):
+            ip = f"192.168.1.{i}"
+            nodes.append(Node(ip_address=ip, status="unknown"))
+
+        session.add_all(nodes)
+        await session.commit()
+
+
+# отримання списку вузлів
+async def get_nodes():
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(Node))
+        return result.scalars().all()
+
+
+# імітація мережевого запиту
+async def check_node(node):
+    await asyncio.sleep(random.uniform(0.5, 2))
+
+    return random.choice(["online", "offline"])
+
+
+# моніторинг вузлів
+async def monitor_nodes():
+    async with AsyncSessionLocal() as session:
+
+        result = await session.execute(select(Node))
+        nodes = result.scalars().all()
+
+        tasks = []
+
+        for node in nodes:
+            tasks.append(check_node(node))
+
+        statuses = await asyncio.gather(*tasks)
+
+        for node, status in zip(nodes, statuses):
+            node.status = status
+
+        await session.commit()
+
+
+# вивід вузлів
+def print_nodes(nodes, title):
+    print("\n", title)
+
+    for node in nodes:
+        print(node)
+
+
+# головна функція
+async def main():
+
+    print("Створення таблиці...")
+    await create_table()
+
+    print("Додавання вузлів...")
+    await add_nodes()
+
+    nodes_before = await get_nodes()
+    print_nodes(nodes_before, "Список вузлів ДО моніторингу:")
+
+    print("\nМоніторинг мережі...")
+    await monitor_nodes()
+
+    nodes_after = await get_nodes()
+    print_nodes(nodes_after, "Список вузлів ПІСЛЯ моніторингу:")
+
+
+asyncio.run(main())
