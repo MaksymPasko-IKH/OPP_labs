@@ -1,0 +1,67 @@
+import requests
+
+class RestClient:
+    def __init__(self, base_url):
+        self.base_url = base_url
+
+    # Метод GET
+    def get(self, endpoint):
+        url = f"{self.base_url}/{endpoint}"
+        try:
+            response = requests.get(url)
+
+            if response.status_code == 200:
+                print("GET запит виконано успішно")
+                return response.json()
+            else:
+                print(f"Помилка GET запиту. Код: {response.status_code}")
+                return None
+
+        except requests.exceptions.RequestException as e:
+            print("Помилка підключення:", e)
+            return None
+
+    # Метод POST
+    def post(self, endpoint, data):
+        url = f"{self.base_url}/{endpoint}"
+        try:
+            response = requests.post(url, json=data)
+
+            if response.status_code in [200, 201]:
+                print("POST запит виконано успішно")
+                return response.json()
+            else:
+                print(f"Помилка POST запиту. Код: {response.status_code}")
+                return None
+
+        except requests.exceptions.RequestException as e:
+            print("Помилка підключення:", e)
+            return None
+
+# Демонстрація роботи
+if __name__ == "__main__":
+
+    base_url = "https://jsonplaceholder.typicode.com"
+    client = RestClient(base_url)
+
+    print("\nОтримання списку постів (GET):")
+    posts = client.get("posts")
+
+    if posts:
+        for post in posts[:3]:  # покажемо перші 3
+            print(post)
+
+    print("\nОтримання одного поста (GET):")
+    post = client.get("posts/1")
+    print(post)
+
+    print("\nСтворення нового поста (POST):")
+
+    new_post = {
+        "title": "My new post",
+        "body": "This is a test post",
+        "userId": 1
+    }
+
+    response = client.post("posts", new_post)
+    print(response)
