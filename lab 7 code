@@ -1,0 +1,53 @@
+import asyncio
+import websockets
+
+class WebSocketClient:
+
+    def __init__(self):
+        self.connection = None
+
+    async def connect(self, url):
+        try:
+            self.connection = await websockets.connect(url)
+            print("Підключено до сервера:", url)
+        except Exception as e:
+            print("Помилка підключення:", e)
+
+    async def send_message(self, message):
+        try:
+            if self.connection:
+                await self.connection.send(message)
+                print("Надіслано:", message)
+            else:
+                print("З'єднання не встановлено")
+        except Exception as e:
+            print("Помилка надсилання:", e)
+
+    async def receive_message(self):
+        try:
+            if self.connection:
+                response = await self.connection.recv()
+                print("Отримано:", response)
+            else:
+                print("З'єднання не встановлено")
+        except Exception as e:
+            print("Помилка отримання:", e)
+
+    async def close_connection(self):
+        if self.connection:
+            await self.connection.close()
+            print("З'єднання закрито")
+
+async def main():
+
+    url = "wss://ws.ifelse.io"
+
+    client = WebSocketClient()
+
+    await client.connect(url)
+    await client.send_message("Hello WebSocket")
+    await client.receive_message()
+
+    await client.close_connection()
+
+asyncio.run(main())
