@@ -1,0 +1,88 @@
+import requests
+import json
+import time
+import websocket
+import paho.mqtt.client as mqtt
+
+# MQTT CLIENT
+class MQTTClient:
+
+    def __init__(self, broker="broker.hivemq.com", port=1883):
+        self.broker = broker
+        self.port = port
+        self.client = mqtt.Client()
+
+    def connect(self):
+        print("Підключення до MQTT брокера...")
+        self.client.connect(self.broker, self.port)
+        print("Підключено до MQTT")
+
+    def publish(self, topic, message):
+        self.client.publish(topic, message)
+        print(f"MQTT повідомлення відправлено в тему {topic}: {message}")
+
+    def disconnect(self):
+        self.client.disconnect()
+        print("Відключено від MQTT")
+
+# REST API
+def get_data_from_api():
+    url = "https://jsonplaceholder.typicode.com/posts/1"
+
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        print("Дані отримані з REST API:")
+        print(data)
+        return data
+    else:
+        print("Помилка отримання даних")
+        return None
+
+# WEBSOCKET
+def send_via_websocket(message):
+
+    ws_url = "wss://ws.ifelse.io"
+
+    ws = websocket.create_connection(ws_url)
+
+    print("Підключено до WebSocket")
+
+    ws.send(json.dumps(message))
+    print("Дані відправлені через WebSocket")
+
+    result = ws.recv()
+    print("Відповідь WebSocket:", result)
+
+    ws.close()
+
+# MAIN PROGRAM
+def main():
+
+    topic = "home/temperature"
+
+    mqtt_client = MQTTClient()
+
+    mqtt_client.connect()
+
+    while True:
+
+        # 1. Отримуємо дані з API
+        data = get_data_from_api()
+
+        if data:
+
+            message = json.dumps(data)
+
+            # 2. Передаємо через WebSocket
+            send_via_websocket(data)
+
+            # 3. Публікуємо через MQTT
+            mqtt_client.publish(topic, message)
+
+        time.sleep(5)
+
+
+if __name__ == "__main__":
+    main()
