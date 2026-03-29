@@ -1,0 +1,159 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+sns.set(style="whitegrid")
+
+# Клас для роботи з даними
+class DataLoader:
+
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.df = None
+
+    def load_data(self):
+        self.df = pd.read_csv(self.file_path)
+        print("Дані успішно завантажені")
+        print(self.df.head())
+        return self.df
+
+
+    def create_average_salary(self):
+
+        salary_split = self.df['Salary Range'].str.split('-', expand=True)
+
+        self.df['Min Salary'] = salary_split[0]
+        self.df['Max Salary'] = salary_split[1]
+
+        self.df['Min Salary'] = self.df['Min Salary'].str.replace('£','',regex=False).str.replace(',','',regex=False).str.strip()
+        self.df['Max Salary'] = self.df['Max Salary'].str.replace('£','',regex=False).str.replace(',','',regex=False).str.strip()
+
+        self.df['Min Salary'] = self.df['Min Salary'].astype(int)
+        self.df['Max Salary'] = self.df['Max Salary'].astype(int)
+
+        self.df['Average Salary'] = (self.df['Min Salary'] + self.df['Max Salary']) / 2
+
+        return self.df
+
+
+    def extract_year(self):
+
+        self.df['Date Posted'] = pd.to_datetime(self.df['Date Posted'])
+        self.df['Year'] = self.df['Date Posted'].dt.year
+
+        return self.df
+
+# Клас для побудови графіків
+class Visualization:
+
+    def __init__(self, df):
+        self.df = df
+
+    # Barplot
+    def barplot_salary_experience(self):
+        plt.figure(figsize=(8,5))
+
+        sns.barplot(
+            data=self.df,
+            x='Experience Level',
+            y='Average Salary'
+        )
+
+        plt.title("Середня зарплата залежно від рівня досвіду")
+        plt.xlabel("Рівень досвіду")
+        plt.ylabel("Average Salary")
+
+        plt.show()
+
+    # Boxplot
+    def boxplot_salary_industry(self):
+        plt.figure(figsize=(12,6))
+
+        sns.boxplot(
+            data=self.df,
+            x='Industry',
+            y='Average Salary'
+        )
+
+        plt.xticks(rotation=45, ha='right')
+        plt.title("Розподіл зарплат по галузях")
+        plt.tight_layout()
+
+        plt.show()
+
+    # Heatmap
+    def heatmap_jobs(self):
+
+        pivot_table = pd.crosstab(
+            self.df['Experience Level'],
+            self.df['Industry']
+        )
+
+        plt.figure(figsize=(12,6))
+
+        sns.heatmap(
+            pivot_table,
+            annot=True,
+            cmap='coolwarm',
+            fmt='d'
+        )
+
+        plt.title("Кількість вакансій за рівнем досвіду та галуззю")
+
+        plt.show()
+
+    # Scatterplot
+    def scatter_salary_year(self):
+
+        plt.figure(figsize=(10,6))
+
+        sns.scatterplot(
+            data=self.df,
+            x='Year',
+            y='Average Salary',
+            hue='Experience Level'
+        )
+
+        plt.title("Залежність зарплати від року публікації")
+        plt.show()
+
+    # Pairplot
+    def pairplot_analysis(self):
+
+        sns.pairplot(
+            self.df,
+            vars=['Average Salary', 'Year'],
+            hue='Experience Level'
+        )
+
+        plt.show()
+
+# Основна програма
+class MainApp:
+
+    def run(self):
+
+        file_path = "Job opportunities.csv"
+
+        # Завантаження даних
+        loader = DataLoader(file_path)
+        df = loader.load_data()
+
+        # створення Average Salary
+        df = loader.create_average_salary()
+
+        # витяг року
+        df = loader.extract_year()
+
+        # Побудова графіків
+        vis = Visualization(df)
+
+        vis.barplot_salary_experience()
+        vis.boxplot_salary_industry()
+        vis.heatmap_jobs()
+        vis.scatter_salary_year()
+        vis.pairplot_analysis()
+
+if __name__ == "__main__":
+    app = MainApp()
+    app.run()
