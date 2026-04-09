@@ -24,3 +24,24 @@ print(pq.dequeue())   # Output: task1
 
 
 #для 2 додаткове завдання
+import heapq
+
+class PriorityQueue:
+    def __init__(self):
+        self.queue = []
+
+    def enqueue(self, item, priority):
+        # використовуємо купу, тому міняємо знак пріоритету
+        heapq.heappush(self.queue, (-priority, item))
+
+    def dequeue(self):
+        if self.queue:
+            return heapq.heappop(self.queue)[1]
+        return None
+
+# приклад запуску
+pq = PriorityQueue()
+pq.enqueue("task1", 2)
+pq.enqueue("task2", 1)
+
+print(pq.dequeue())   # Output: task1
