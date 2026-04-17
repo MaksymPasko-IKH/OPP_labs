@@ -45,3 +45,120 @@ pq.enqueue("task1", 2)
 pq.enqueue("task2", 1)
 
 print(pq.dequeue())   # Output: task1
+
+#для 3 додаткове завдання
+from collections import OrderedDict
+
+class LRUCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.cache = OrderedDict()
+
+    def get(self, key):
+        if key not in self.cache:
+            return -1
+        value = self.cache.pop(key)
+        self.cache[key] = value
+        return value
+
+    def put(self, key, value):
+        if key in self.cache:
+            self.cache.pop(key)
+
+        elif len(self.cache) >= self.capacity:
+            self.cache.popitem(last=False)
+
+        self.cache[key] = value
+
+
+# Приклад роботи
+cache = LRUCache(2)
+
+cache.put(1,1)
+cache.put(2,2)
+
+print(cache.get(1))   # Output: 1
+
+cache.put(3,3)        # видаляє ключ 2
+
+print(cache.get(2))   # Output: -1
+
+#для 4 додаткове завдання
+from abc import ABC, abstractmethod
+
+class Game(ABC):
+
+    @abstractmethod
+    def play(self):
+        pass
+
+
+class Chess(Game):
+    def play(self):
+        print("Playing Chess")
+
+
+class TicTacToe(Game):
+    def play(self):
+        print("Playing TicTacToe")
+
+
+# Приклад роботи
+game = Chess()
+game.play()     # Output: Playing Chess
+
+#для 5 додаткове завдання
+import statistics
+
+class StatsTracker:
+    def __init__(self):
+        self.numbers = []
+
+    def add(self, value):
+        self.numbers.append(value)
+
+    def mean(self):
+        return statistics.mean(self.numbers)
+
+    def median(self):
+        return statistics.median(self.numbers)
+
+    def mode(self):
+        return statistics.mode(self.numbers)
+
+
+# Приклад роботи
+stats = StatsTracker()
+
+stats.add(2)
+stats.add(3)
+stats.add(2)
+
+print(stats.mean())    # 2.33 середнє значення
+print(stats.median())  # 2 медіан
+print(stats.mode())    # 2 моду
+
+#для 6 додаткове завдання
+def log_methods(cls):
+    for attr_name in dir(cls):
+        attr = getattr(cls, attr_name)
+
+        if callable(attr) and not attr_name.startswith("__"):
+            def wrapper(self, *args, method=attr, name=attr_name, **kwargs):
+                print(f"Calling {name}")
+                return method(self, *args, **kwargs)
+
+            setattr(cls, attr_name, wrapper)
+
+    return cls
+
+
+@log_methods
+class Calculator:
+    def add(self, x, y):
+        return x + y
+
+
+# Приклад роботи
+calc = Calculator()
+print(calc.add(2,3))   # Calling add -> 5
