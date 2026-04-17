@@ -162,3 +162,31 @@ class Calculator:
 # Приклад роботи
 calc = Calculator()
 print(calc.add(2,3))   # Calling add -> 5
+
+#для 7 додаткове завдання
+class Vehicle:
+    def max_speed(self):
+        pass
+
+
+class Car(Vehicle):
+    def max_speed(self):
+        return 72
+
+
+class Truck(Vehicle):
+    def max_speed(self):
+        return 53
+
+
+class Motorcycle(Vehicle):
+    def max_speed(self):
+        return 106
+
+
+# Приклад роботи
+vehicles = [Car(), Truck(), Motorcycle()]
+
+max_speeds = [v.max_speed() for v in vehicles]
+
+print(max_speeds)   # Output: [72, 53, 106]
