@@ -15,7 +15,6 @@ class PriorityQueue:
         return None
 
 
-# приклад запуску
 pq = PriorityQueue()
 pq.enqueue("task1", 2)
 pq.enqueue("task2", 1)
@@ -31,7 +30,7 @@ class PriorityQueue:
         self.queue = []
 
     def enqueue(self, item, priority):
-        # використовуємо купу, тому міняємо знак пріоритету
+        # використовуємо купу
         heapq.heappush(self.queue, (-priority, item))
 
     def dequeue(self):
@@ -39,7 +38,6 @@ class PriorityQueue:
             return heapq.heappop(self.queue)[1]
         return None
 
-# приклад запуску
 pq = PriorityQueue()
 pq.enqueue("task1", 2)
 pq.enqueue("task2", 1)
@@ -71,7 +69,6 @@ class LRUCache:
         self.cache[key] = value
 
 
-# Приклад роботи
 cache = LRUCache(2)
 
 cache.put(1,1)
@@ -103,7 +100,6 @@ class TicTacToe(Game):
         print("Playing TicTacToe")
 
 
-# Приклад роботи
 game = Chess()
 game.play()     # Output: Playing Chess
 
@@ -127,7 +123,6 @@ class StatsTracker:
         return statistics.mode(self.numbers)
 
 
-# Приклад роботи
 stats = StatsTracker()
 
 stats.add(2)
@@ -159,7 +154,6 @@ class Calculator:
         return x + y
 
 
-# Приклад роботи
 calc = Calculator()
 print(calc.add(2,3))   # Calling add -> 5
 
@@ -184,9 +178,75 @@ class Motorcycle(Vehicle):
         return 106
 
 
-# Приклад роботи
 vehicles = [Car(), Truck(), Motorcycle()]
 
 max_speeds = [v.max_speed() for v in vehicles]
 
 print(max_speeds)   # Output: [72, 53, 106]
+
+#для 8 додаткове завдання
+class BoundedStack:
+    def __init__(self, max_size):
+        self.max_size = max_size
+        self.stack = []
+
+    def push(self, item):
+        if len(self.stack) >= self.max_size:
+            raise OverflowError("Stack overflow")
+        self.stack.append(item)
+
+    def pop(self):
+        if not self.stack:
+            raise IndexError("Stack is empty")
+        return self.stack.pop()
+
+
+stack = BoundedStack(2)
+
+stack.push(1)
+stack.push(2)
+
+stack.push(3)  # Error
+
+
+#для 9 додаткове завдання
+
+class FactorialCache:
+    def __init__(self):
+        self.cache = {}
+
+    def compute(self, n):
+        if n in self.cache:
+            return self.cache[n]
+
+        if n == 0 or n == 1:
+            result = 1
+        else:
+            result = n * self.compute(n - 1)
+
+        self.cache[n] = result
+        return result
+
+
+fc = FactorialCache()
+
+print(fc.compute(5))  # Output: 120
+
+#для 10 додаткове завдання
+class Graph:
+    def __init__(self):
+        self.graph = {}
+
+    def add_edge(self, a, b):
+        if a not in self.graph:
+            self.graph[a] = []
+        self.graph[a].append(b)
+
+    def neighbors(self, node):
+        return self.graph.get(node, [])
+
+
+g = Graph()
+g.add_edge("A", "B")
+
+print(g.neighbors("A"))  # Output: ['B']
